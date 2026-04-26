@@ -1,0 +1,762 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+  <title>Halogram Pro · Hide text or files · Link opener</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      background: #0a0f1c;
+      font-family: 'Inter', system-ui, sans-serif;
+      padding: 1.2rem;
+      color: #eef4ff;
+    }
+    .container { max-width: 1400px; margin: 0 auto; }
+    h1 {
+      font-size: 2rem;
+      background: linear-gradient(135deg, #c0e0ff, #7aaef5);
+      background-clip: text;
+      -webkit-background-clip: text;
+      color: transparent;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .sub { color: #8da3b5; margin-bottom: 2rem; border-left: 3px solid #3b82f6; padding-left: 1rem; }
+    .card {
+      background: rgba(18, 28, 40, 0.75);
+      backdrop-filter: blur(12px);
+      border-radius: 2rem;
+      border: 1px solid rgba(59, 130, 246, 0.35);
+      padding: 1.6rem;
+      margin-bottom: 2rem;
+    }
+    .grid-2col {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+      gap: 1.8rem;
+    }
+    .flex-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1rem;
+      align-items: center;
+      margin: 1rem 0 0.5rem;
+    }
+    button {
+      background: #1e3a4d;
+      border: none;
+      color: white;
+      font-weight: 600;
+      padding: 0.7rem 1.4rem;
+      border-radius: 2rem;
+      cursor: pointer;
+      transition: 0.2s;
+      font-size: 0.85rem;
+    }
+    button.primary {
+      background: linear-gradient(105deg, #2b6a9f, #1c4e74);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    }
+    button.primary:hover { transform: translateY(-2px); }
+    input, textarea, select {
+      background: #0f1a24;
+      border: 1px solid #2c4a62;
+      border-radius: 1rem;
+      padding: 0.7rem 1rem;
+      color: white;
+      width: 100%;
+      font-family: monospace;
+    }
+    .preview-box {
+      background: #00000030;
+      border-radius: 1.2rem;
+      padding: 1rem;
+      text-align: center;
+      margin-top: 1rem;
+    }
+    .preview-box img, .preview-box canvas, .preview-box embed {
+      max-width: 100%;
+      max-height: 180px;
+      border-radius: 1rem;
+    }
+    .status {
+      background: #07131c;
+      padding: 0.6rem 1rem;
+      border-radius: 1.5rem;
+      font-size: 0.75rem;
+      margin-top: 0.8rem;
+    }
+    .status.success { background: #0f3b1f; color: #b3ffcf; }
+    .status.warning { background: #3b2a0f; color: #ffdf99; }
+    .badge { display: inline-block; background: #2c5a7a60; padding: 0.2rem 0.8rem; border-radius: 2rem; font-size: 0.7rem; }
+    .doc-preview {
+      background: #1e2a36;
+      border-radius: 1rem;
+      padding: 0.8rem;
+      max-height: 400px;
+      overflow: auto;
+    }
+    .link-btn {
+      background: #3b82f6;
+      margin-top: 0.5rem;
+      display: inline-block;
+    }
+    footer { text-align: center; font-size: 0.7rem; opacity: 0.6; margin-top: 2rem; }
+  </style>
+</head>
+<body>
+<div class="container">
+  <h1>📦 HALOGRAM PRO · <span class="badge">hide text or files · link opener</span></h1>
+  <div class="sub">Embed any text (including long documents/URLs) or any file (PDF, DOCX, PPT) into images. Reconstruct with original name. Extracted URLs open with one click.</div>
+
+  <!-- ENCODE SECTION -->
+  <div class="card">
+    <div class="grid-2col">
+      <div>
+        <h3>🔒 ENCODE (hide text or file)</h3>
+        <label>📸 Carrier image (PNG/JPEG)</label>
+        <input type="file" id="carrierImage" accept="image/png,image/jpeg,image/webp">
+        
+        <label style="margin-top: 1rem;">📄 OR choose a file to hide (PDF, DOCX, PPT, ZIP, etc.)</label>
+        <input type="file" id="secretFileInput">
+        
+        <label style="margin-top: 1rem;">✏️ OR type/paste text below (links, long text)</label>
+        <textarea id="secretTextArea" rows="4" placeholder="Paste long text, links, or leave empty if using file"></textarea>
+        
+        <div class="status" id="capacityInfo">⚡ Upload carrier image to see capacity.</div>
+        <div class="flex-row">
+          <button id="encodeBtn" class="primary">🌀 Encode (auto‑split)</button>
+          <button id="downloadSingleBtn" disabled>⬇️ Save single PNG</button>
+          <button id="downloadZipBtn" disabled style="display:none;">📦 Download all chunks (ZIP)</button>
+        </div>
+        <div class="status" id="encodeStatus">Ready</div>
+      </div>
+      <div>
+        <div class="preview-box"><strong>📷 Original image</strong><div id="originalPreview">none</div></div>
+        <div class="preview-box"><strong>✨ First chunk preview</strong><div id="firstChunkPreview">not generated</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- DECODE SECTION (single + multi) -->
+  <div class="card">
+    <h3>🔍 DECODE (reconstruct original data)</h3>
+    <div class="grid-2col">
+      <div>
+        <label>📂 Option 1: Single Halogram PNG</label>
+        <input type="file" id="decodeSingleInput" accept="image/png">
+        <button id="decodeSingleBtn">Extract from single image</button>
+        <div class="status" id="singleDecodeStatus"></div>
+      </div>
+      <div>
+        <label>📂 Option 2: Multi‑file chunks (select all halogram_*.png)</label>
+        <input type="file" id="decodeMultipleInput" multiple accept="image/png">
+        <button id="decodeMergeBtn">Reconstruct from chunks</button>
+        <div class="status" id="multiDecodeStatus"></div>
+      </div>
+    </div>
+    <div id="extractedPreviewArea" class="doc-preview" style="margin-top:1rem; text-align:center; color:#aaa;">
+      No document extracted yet.
+    </div>
+    <div id="linkButtonArea" style="margin-top:0.5rem;"></div>
+    <button id="downloadExtractedBtn" disabled style="margin-top:0.8rem;">💾 Download reconstructed file (original name)</button>
+  </div>
+
+  <!-- LIVE CAMERA DECODER -->
+  <div class="card">
+    <h3>📡 LIVE CAMERA SCANNER (point at any Halogram image)</h3>
+    <div class="grid-2col">
+      <div>
+        <video id="liveVideo" autoplay muted playsinline style="width:100%; border-radius:1rem;"></video>
+        <div class="flex-row">
+          <button id="startCameraBtn">📷 Start camera</button>
+          <button id="captureDecodeBtn">🔎 Capture & decode</button>
+        </div>
+        <div class="status" id="cameraStatus">Camera off.</div>
+      </div>
+      <div>
+        <textarea id="cameraDecodedText" rows="3" readonly placeholder="Text preview..."></textarea>
+        <div id="cameraLinkArea"></div>
+        <button id="cameraDownloadBtn" disabled>📥 Download extracted file</button>
+        <div id="cameraDocPreview" class="doc-preview" style="margin-top:0.5rem; max-height:200px;">document preview</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bonus: Artistic QR (unchanged) -->
+  <div class="card">
+    <details>
+      <summary style="cursor:pointer; font-weight:600;">🎨 Bonus: Artistic QR codes (Google Lens readable)</summary>
+      <div class="grid-2col" style="margin-top:1rem;">
+        <div>
+          <input type="file" id="qrBgInput" accept="image/*">
+          <input type="text" id="qrContent" placeholder="https://..." value="https://halogram.app">
+          <select id="qrStyle">
+            <option value="classic">Classic QR</option>
+            <option value="halftone">Halftone fusion</option>
+            <option value="microdot">Microdot array</option>
+            <option value="invisible">Invisible ink</option>
+          </select>
+          <div id="invisibleSlider" style="display:none;"><input type="range" id="invisibleBoost" min="0" max="100" value="40"></div>
+          <button id="generateQrBtn" class="primary">Generate QR</button>
+          <button id="downloadQrBtn" disabled>Save PNG</button>
+        </div>
+        <div><div id="qrPreview" class="preview-box"><span style="color:#aaa;">QR preview</span></div></div>
+      </div>
+    </details>
+  </div>
+  <footer>✅ For large payloads (text or file), tool automatically splits across multiple PNGs (ZIP for chunks). Decoding reconstructs original text or file with correct name. URLs become clickable buttons.</footer>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.1/build/qrcode.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+<script>
+  // ======================= CORE LSB ENGINE =======================
+  function bytesToBytesWithHeader(dataBytes) {
+    const header = new ArrayBuffer(4);
+    const view = new DataView(header);
+    view.setUint32(0, dataBytes.length, false);
+    const headerBytes = new Uint8Array(header);
+    const combined = new Uint8Array(headerBytes.length + dataBytes.length);
+    combined.set(headerBytes, 0);
+    combined.set(dataBytes, 4);
+    return combined;
+  }
+
+  function bytesFromBytesWithHeader(combinedBytes) {
+    if (combinedBytes.length < 4) throw new Error("Not enough data");
+    const dataLen = (combinedBytes[0]<<24) | (combinedBytes[1]<<16) | (combinedBytes[2]<<8) | combinedBytes[3];
+    if (combinedBytes.length < 4 + dataLen) throw new Error("Incomplete data");
+    return combinedBytes.slice(4, 4 + dataLen);
+  }
+
+  function encodeBytesToImageData(imageData, bytesArray) {
+    const data = new Uint8ClampedArray(imageData.data);
+    const totalBits = bytesArray.length * 8;
+    const availablePixels = imageData.width * imageData.height;
+    const availableBits = availablePixels * 3;
+    if (totalBits > availableBits) throw new Error("Not enough capacity");
+    let bitIndex = 0, byteIndex = 0;
+    let currentByte = bytesArray[byteIndex];
+    for (let i = 0; i < availablePixels && byteIndex < bytesArray.length; i++) {
+      const offset = i * 4;
+      for (let ch = 0; ch < 3; ch++) {
+        if (byteIndex >= bytesArray.length) break;
+        const bit = (currentByte >> (7 - (bitIndex % 8))) & 1;
+        data[offset + ch] = (data[offset + ch] & 0xFE) | bit;
+        bitIndex++;
+        if (bitIndex % 8 === 0) {
+          byteIndex++;
+          if (byteIndex < bytesArray.length) currentByte = bytesArray[byteIndex];
+          else break;
+        }
+      }
+    }
+    return new ImageData(data, imageData.width, imageData.height);
+  }
+
+  async function encodeBinaryIntoImage(carrierFile, payloadBytes) {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      const url = URL.createObjectURL(carrierFile);
+      img.onload = () => {
+        URL.revokeObjectURL(url);
+        const canvas = document.createElement('canvas');
+        canvas.width = img.width;
+        canvas.height = img.height;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0);
+        const imageData = ctx.getImageData(0, 0, img.width, img.height);
+        try {
+          const finalBytes = bytesToBytesWithHeader(payloadBytes);
+          const newImgData = encodeBytesToImageData(imageData, finalBytes);
+          ctx.putImageData(newImgData, 0, 0);
+          canvas.toBlob(blob => resolve(blob), 'image/png');
+        } catch (err) { reject(err); }
+      };
+      img.onerror = () => reject(new Error("Failed to load carrier image"));
+      img.src = url;
+    });
+  }
+
+  async function decodeHalogramImage(file) {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      const url = URL.createObjectURL(file);
+      img.onload = () => {
+        URL.revokeObjectURL(url);
+        const canvas = document.createElement('canvas');
+        canvas.width = img.width;
+        canvas.height = img.height;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0);
+        const imageData = ctx.getImageData(0, 0, img.width, img.height);
+        const data = imageData.data;
+        const pixels = img.width * img.height;
+        let bits = [];
+        for (let i = 0; i < pixels; i++) {
+          const offset = i * 4;
+          for (let ch = 0; ch < 3; ch++) bits.push(data[offset + ch] & 1);
+          if (bits.length > 32 + 50*1024*1024) break;
+        }
+        let bytes = [];
+        for (let i = 0; i + 7 < bits.length; i += 8) {
+          let byte = 0;
+          for (let j = 0; j < 8; j++) byte = (byte << 1) | bits[i + j];
+          bytes.push(byte);
+          if (bytes.length >= 4 && bytes.length >= 4 + ((bytes[0]<<24)|(bytes[1]<<16)|(bytes[2]<<8)|bytes[3])) break;
+        }
+        if (bytes.length < 4) throw new Error("No Halogram header");
+        const dataLen = (bytes[0]<<24) | (bytes[1]<<16) | (bytes[2]<<8) | bytes[3];
+        if (bytes.length < 4 + dataLen) throw new Error("Incomplete data");
+        resolve(new Uint8Array(bytes.slice(4, 4 + dataLen)));
+      };
+      img.onerror = () => reject(new Error("Image load error"));
+      img.src = url;
+    });
+  }
+
+  // ======================= COMPRESSION =======================
+  async function compressData(bytes) {
+    if ('CompressionStream' in window) {
+      const cs = new CompressionStream('gzip');
+      const writer = cs.writable.getWriter();
+      writer.write(bytes);
+      writer.close();
+      const compressed = await new Response(cs.readable).arrayBuffer();
+      return new Uint8Array(compressed);
+    }
+    return bytes;
+  }
+  async function decompressData(bytes) {
+    if ('DecompressionStream' in window) {
+      const ds = new DecompressionStream('gzip');
+      const writer = ds.writable.getWriter();
+      writer.write(bytes);
+      writer.close();
+      const decompressed = await new Response(ds.readable).arrayBuffer();
+      return new Uint8Array(decompressed);
+    }
+    return bytes;
+  }
+
+  // ======================= CAPACITY & ENCODING =======================
+  async function getImageCapacity(file) {
+    return new Promise((resolve) => {
+      const img = new Image();
+      const url = URL.createObjectURL(file);
+      img.onload = () => {
+        URL.revokeObjectURL(url);
+        resolve(Math.floor((img.width * img.height * 3) / 8));
+      };
+      img.src = url;
+    });
+  }
+
+  let currentEncodedChunks = [];
+  let currentCarrierFile = null;
+  let currentPayloadName = "payload"; // for text or file
+  const carrierImage = document.getElementById('carrierImage');
+  const secretFileInput = document.getElementById('secretFileInput');
+  const secretTextArea = document.getElementById('secretTextArea');
+  const encodeBtn = document.getElementById('encodeBtn');
+  const downloadSingleBtn = document.getElementById('downloadSingleBtn');
+  const downloadZipBtn = document.getElementById('downloadZipBtn');
+  const encodeStatus = document.getElementById('encodeStatus');
+  const capacityInfo = document.getElementById('capacityInfo');
+  const originalPreviewDiv = document.getElementById('originalPreview');
+  const firstChunkPreviewDiv = document.getElementById('firstChunkPreview');
+
+  carrierImage.addEventListener('change', async (e) => {
+    if (e.target.files[0]) {
+      currentCarrierFile = e.target.files[0];
+      const url = URL.createObjectURL(currentCarrierFile);
+      const img = document.createElement('img');
+      img.src = url;
+      img.style.maxWidth = '100%';
+      originalPreviewDiv.innerHTML = '';
+      originalPreviewDiv.appendChild(img);
+      img.onload = () => URL.revokeObjectURL(url);
+      const capacity = await getImageCapacity(currentCarrierFile);
+      capacityInfo.innerHTML = `📊 Image capacity: ~${(capacity/1024).toFixed(1)} KB per image.`;
+    } else {
+      originalPreviewDiv.innerHTML = 'none';
+      capacityInfo.innerHTML = '⚡ Upload carrier image.';
+    }
+  });
+
+  encodeBtn.addEventListener('click', async () => {
+    if (!currentCarrierFile) { encodeStatus.innerText = "❌ Select carrier image."; return; }
+    let payloadBytes = null;
+    let isFile = false;
+    if (secretFileInput.files && secretFileInput.files[0]) {
+      const file = secretFileInput.files[0];
+      payloadBytes = new Uint8Array(await file.arrayBuffer());
+      currentPayloadName = file.name;
+      isFile = true;
+    } else if (secretTextArea.value.trim()) {
+      const text = secretTextArea.value;
+      payloadBytes = new TextEncoder().encode(text);
+      currentPayloadName = "hidden_text.txt";
+      isFile = false;
+    } else {
+      encodeStatus.innerText = "❌ Please either select a file or enter text to hide.";
+      return;
+    }
+    encodeStatus.innerText = "Compressing...";
+    let compressed = await compressData(payloadBytes);
+    encodeStatus.innerText = `Compressed: ${payloadBytes.length} → ${compressed.length} bytes.`;
+    const singleCapacity = await getImageCapacity(currentCarrierFile);
+    if (compressed.length <= singleCapacity) {
+      const singleBlob = await encodeBinaryIntoImage(currentCarrierFile, compressed);
+      currentEncodedChunks = [singleBlob];
+      firstChunkPreviewDiv.innerHTML = '';
+      const img = document.createElement('img');
+      img.src = URL.createObjectURL(singleBlob);
+      img.style.maxWidth = '100%';
+      firstChunkPreviewDiv.appendChild(img);
+      downloadSingleBtn.disabled = false;
+      downloadZipBtn.style.display = 'none';
+      encodeStatus.innerHTML = `✅ Payload fits in one image. Download single PNG.`;
+      return;
+    }
+    const chunkSize = singleCapacity - 128;
+    const numChunks = Math.ceil(compressed.length / chunkSize);
+    encodeStatus.innerText = `Splitting into ${numChunks} chunks...`;
+    currentEncodedChunks = [];
+    for (let i = 0; i < numChunks; i++) {
+      const start = i * chunkSize;
+      const end = Math.min(start + chunkSize, compressed.length);
+      const chunkData = compressed.slice(start, end);
+      const meta = new Uint8Array(8);
+      const view = new DataView(meta.buffer);
+      view.setUint32(0, numChunks, false);
+      view.setUint32(4, i, false);
+      const fullChunk = new Uint8Array(meta.length + chunkData.length);
+      fullChunk.set(meta, 0);
+      fullChunk.set(chunkData, 8);
+      encodeStatus.innerText = `Encoding chunk ${i+1}/${numChunks}...`;
+      const chunkBlob = await encodeBinaryIntoImage(currentCarrierFile, fullChunk);
+      currentEncodedChunks.push(chunkBlob);
+      if (i === 0) {
+        firstChunkPreviewDiv.innerHTML = '';
+        const img = document.createElement('img');
+        img.src = URL.createObjectURL(chunkBlob);
+        img.style.maxWidth = '100%';
+        firstChunkPreviewDiv.appendChild(img);
+      }
+    }
+    downloadZipBtn.style.display = 'inline-block';
+    downloadSingleBtn.disabled = true;
+    encodeStatus.innerHTML = `✅ Split into ${numChunks} images. Download ZIP to get all chunks.`;
+  });
+
+  downloadSingleBtn.addEventListener('click', () => {
+    if (currentEncodedChunks.length === 1) {
+      const blob = currentEncodedChunks[0];
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = `halogram_${currentPayloadName.replace(/\.[^/.]+$/, '')}.png`;
+      a.click();
+      URL.revokeObjectURL(a.href);
+    }
+  });
+
+  downloadZipBtn.addEventListener('click', async () => {
+    if (currentEncodedChunks.length === 0) return;
+    const zip = new JSZip();
+    for (let i = 0; i < currentEncodedChunks.length; i++) {
+      const arr = await currentEncodedChunks[i].arrayBuffer();
+      zip.file(`halogram_${i+1}.png`, arr);
+    }
+    zip.file("manifest.json", JSON.stringify({ filename: currentPayloadName, chunks: currentEncodedChunks.length }));
+    const zipBlob = await zip.generateAsync({ type: "blob" });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(zipBlob);
+    a.download = `halogram_${currentPayloadName.split('.')[0]}.zip`;
+    a.click();
+    URL.revokeObjectURL(a.href);
+  });
+
+  // ======================= DECODING =======================
+  let reconstructedBytes = null;
+  let reconstructedFilename = null;
+  let reconstructedMime = null;
+
+  function detectMime(bytes) {
+    if (bytes.length < 4) return 'text/plain'; // assume text if small? better to check
+    if (bytes[0]==0x25 && bytes[1]==0x50 && bytes[2]==0x44 && bytes[3]==0x46) return 'application/pdf';
+    if (bytes[0]==0x89 && bytes[1]==0x50 && bytes[2]==0x4E && bytes[3]==0x47) return 'image/png';
+    if (bytes[0]==0xFF && bytes[1]==0xD8) return 'image/jpeg';
+    if (bytes[0]==0x47 && bytes[1]==0x49 && bytes[2]==0x46) return 'image/gif';
+    if (bytes[0]==0x52 && bytes[1]==0x49 && bytes[2]==0x46 && bytes[3]==0x46) return 'image/webp';
+    if (bytes[0]==0x50 && bytes[1]==0x4B) return 'application/zip';
+    if (bytes[4]==0x66 && bytes[5]==0x74 && bytes[6]==0x79 && bytes[7]==0x70) return 'video/mp4';
+    if (bytes[0]==0x49 && bytes[1]==0x44 && bytes[2]==0x33) return 'audio/mpeg';
+    // if it's printable ASCII/UTF-8, treat as text
+    let printable = true;
+    for (let i=0; i<Math.min(256, bytes.length); i++) {
+      let b = bytes[i];
+      if (b !== 9 && b !== 10 && b !== 13 && (b < 32 || b > 126)) { printable = false; break; }
+    }
+    if (printable) return 'text/plain';
+    return 'application/octet-stream';
+  }
+
+  function renderPreview(container, bytes, mime, filenameHint) {
+    container.innerHTML = '';
+    const blob = new Blob([bytes], { type: mime });
+    const url = URL.createObjectURL(blob);
+    if (mime === 'application/pdf') {
+      const embed = document.createElement('embed');
+      embed.src = url;
+      embed.type = 'application/pdf';
+      embed.style.width = '100%';
+      embed.style.height = '450px';
+      container.appendChild(embed);
+    } else if (mime.startsWith('image/')) {
+      const img = document.createElement('img');
+      img.src = url;
+      img.style.maxWidth = '100%';
+      container.appendChild(img);
+    } else if (mime.startsWith('video/')) {
+      const video = document.createElement('video');
+      video.src = url;
+      video.controls = true;
+      video.style.maxWidth = '100%';
+      container.appendChild(video);
+    } else if (mime.startsWith('audio/')) {
+      const audio = document.createElement('audio');
+      audio.src = url;
+      audio.controls = true;
+      container.appendChild(audio);
+    } else if (mime === 'text/plain') {
+      const pre = document.createElement('pre');
+      pre.style.whiteSpace = 'pre-wrap';
+      pre.style.maxHeight = '300px';
+      pre.style.overflow = 'auto';
+      const text = new TextDecoder().decode(bytes);
+      pre.textContent = text.length > 5000 ? text.slice(0,5000)+'\n… (truncated)' : text;
+      container.appendChild(pre);
+    } else if (mime === 'application/zip') {
+      container.innerHTML = `<div>⚠️ ZIP/Office file (DOCX/XLSX/PPTX). <a href="${url}" download="${filenameHint}.zip">Download to open with Word/Excel/PowerPoint</a></div>`;
+    } else {
+      container.innerHTML = `<div>❓ Unknown type. <a href="${url}" download="${filenameHint}.bin">Download raw</a></div>`;
+    }
+  }
+
+  function showLinkButtonIfUrl(text, containerId) {
+    const container = document.getElementById(containerId);
+    container.innerHTML = '';
+    const trimmed = text.trim();
+    if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
+      const btn = document.createElement('button');
+      btn.innerText = '🔗 Open extracted link in new tab';
+      btn.className = 'link-btn';
+      btn.style.marginTop = '0.5rem';
+      btn.onclick = () => window.open(trimmed, '_blank');
+      container.appendChild(btn);
+    }
+  }
+
+  async function showExtracted(bytes, filenameHint = 'halogram_extracted') {
+    reconstructedBytes = bytes;
+    reconstructedMime = detectMime(bytes);
+    reconstructedFilename = filenameHint;
+    renderPreview(extractedPreviewArea, bytes, reconstructedMime, filenameHint);
+    document.getElementById('downloadExtractedBtn').disabled = false;
+    if (reconstructedMime === 'text/plain') {
+      const text = new TextDecoder().decode(bytes);
+      showLinkButtonIfUrl(text, 'linkButtonArea');
+    } else {
+      document.getElementById('linkButtonArea').innerHTML = '';
+    }
+  }
+
+  const decodeSingleInput = document.getElementById('decodeSingleInput');
+  const decodeSingleBtn = document.getElementById('decodeSingleBtn');
+  const singleDecodeStatus = document.getElementById('singleDecodeStatus');
+  const decodeMultipleInput = document.getElementById('decodeMultipleInput');
+  const decodeMergeBtn = document.getElementById('decodeMergeBtn');
+  const multiDecodeStatus = document.getElementById('multiDecodeStatus');
+  const extractedPreviewArea = document.getElementById('extractedPreviewArea');
+  const downloadExtractedBtn = document.getElementById('downloadExtractedBtn');
+
+  decodeSingleBtn.addEventListener('click', async () => {
+    const file = decodeSingleInput.files[0];
+    if (!file) { singleDecodeStatus.innerText = "Select a PNG."; return; }
+    try {
+      const raw = await decodeHalogramImage(file);
+      const decomp = await decompressData(raw);
+      await showExtracted(decomp, file.name.replace('.png', '_extracted'));
+      singleDecodeStatus.innerHTML = `✅ Extracted ${decomp.length} bytes.`;
+    } catch(e) { singleDecodeStatus.innerHTML = `❌ ${e.message}`; }
+  });
+
+  decodeMergeBtn.addEventListener('click', async () => {
+    const files = Array.from(decodeMultipleInput.files);
+    if (files.length === 0) { multiDecodeStatus.innerText = "Select chunk PNGs."; return; }
+    files.sort((a,b) => {
+      const na = parseInt(a.name.match(/\d+/) || [0]);
+      const nb = parseInt(b.name.match(/\d+/) || [0]);
+      return na - nb;
+    });
+    multiDecodeStatus.innerText = "Decoding chunks...";
+    let chunks = [];
+    let totalSize = 0;
+    for (let i = 0; i < files.length; i++) {
+      try {
+        const payload = await decodeHalogramImage(files[i]);
+        if (payload.length < 8) throw new Error("Invalid chunk");
+        const numChunks = new DataView(payload.buffer).getUint32(0, false);
+        const idx = new DataView(payload.buffer).getUint32(4, false);
+        const data = payload.slice(8);
+        chunks[idx] = data;
+        totalSize += data.length;
+        multiDecodeStatus.innerText = `Read chunk ${idx+1}/${numChunks}`;
+      } catch(e) { multiDecodeStatus.innerText = `Error in ${files[i].name}: ${e.message}`; return; }
+    }
+    let full = new Uint8Array(totalSize);
+    let offset = 0;
+    for (let i = 0; i < chunks.length; i++) {
+      if (!chunks[i]) { multiDecodeStatus.innerText = `Missing chunk ${i+1}`; return; }
+      full.set(chunks[i], offset);
+      offset += chunks[i].length;
+    }
+    multiDecodeStatus.innerText = "Decompressing...";
+    const decompressed = await decompressData(full);
+    await showExtracted(decompressed, `reconstructed_${Date.now()}`);
+    multiDecodeStatus.innerHTML = `✅ Reconstructed ${decompressed.length} bytes.`;
+  });
+
+  downloadExtractedBtn.addEventListener('click', () => {
+    if (reconstructedBytes) {
+      let ext = '';
+      if (reconstructedMime === 'application/pdf') ext = '.pdf';
+      else if (reconstructedMime === 'image/png') ext = '.png';
+      else if (reconstructedMime === 'image/jpeg') ext = '.jpg';
+      else if (reconstructedMime === 'application/zip') ext = '.zip';
+      else if (reconstructedMime === 'text/plain') ext = '.txt';
+      else ext = '.bin';
+      const blob = new Blob([reconstructedBytes], { type: reconstructedMime });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = `${reconstructedFilename || 'halogram'}${ext}`;
+      a.click();
+      URL.revokeObjectURL(a.href);
+    }
+  });
+
+  // ======================= LIVE CAMERA =======================
+  const liveVideo = document.getElementById('liveVideo');
+  const startCameraBtn = document.getElementById('startCameraBtn');
+  const captureDecodeBtn = document.getElementById('captureDecodeBtn');
+  const cameraDecodedText = document.getElementById('cameraDecodedText');
+  const cameraStatus = document.getElementById('cameraStatus');
+  const cameraDownloadBtn = document.getElementById('cameraDownloadBtn');
+  const cameraDocPreview = document.getElementById('cameraDocPreview');
+  const cameraLinkArea = document.getElementById('cameraLinkArea');
+  let cameraStream = null;
+  let lastCameraBytes = null;
+  let lastCameraMime = null;
+  let lastCameraFilename = null;
+
+  startCameraBtn.addEventListener('click', async () => {
+    if (cameraStream) cameraStream.getTracks().forEach(t => t.stop());
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
+      cameraStream = stream;
+      liveVideo.srcObject = stream;
+      await liveVideo.play();
+      cameraStatus.innerText = "✅ Camera ready.";
+    } catch(err) { cameraStatus.innerText = `Camera error: ${err.message}`; }
+  });
+
+  captureDecodeBtn.addEventListener('click', () => {
+    if (!liveVideo.videoWidth) { cameraStatus.innerText = "Start camera first."; return; }
+    const canvas = document.createElement('canvas');
+    canvas.width = liveVideo.videoWidth;
+    canvas.height = liveVideo.videoHeight;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(liveVideo, 0, 0, canvas.width, canvas.height);
+    canvas.toBlob(async (blob) => {
+      if (!blob) return;
+      try {
+        const raw = await decodeHalogramImage(blob);
+        const decomp = await decompressData(raw);
+        lastCameraBytes = decomp;
+        lastCameraMime = detectMime(decomp);
+        lastCameraFilename = 'camera_extracted';
+        renderPreview(cameraDocPreview, decomp, lastCameraMime, 'camera');
+        if (lastCameraMime === 'text/plain') {
+          const text = new TextDecoder().decode(decomp);
+          cameraDecodedText.value = text.length > 500 ? text.slice(0,500)+'…' : text;
+          showLinkButtonIfUrl(text, 'cameraLinkArea');
+        } else {
+          cameraDecodedText.value = `[${lastCameraMime} – ${decomp.length} bytes]`;
+          cameraLinkArea.innerHTML = '';
+        }
+        cameraStatus.innerText = `Decoded ${decomp.length} bytes.`;
+        cameraDownloadBtn.disabled = false;
+      } catch(err) {
+        cameraDecodedText.value = "";
+        cameraStatus.innerText = `No data: ${err.message}`;
+        cameraDownloadBtn.disabled = true;
+        cameraDocPreview.innerHTML = '<span>Not a Halogram image</span>';
+        cameraLinkArea.innerHTML = '';
+      }
+    }, 'image/png');
+  });
+
+  cameraDownloadBtn.addEventListener('click', () => {
+    if (lastCameraBytes) {
+      let ext = '';
+      if (lastCameraMime === 'application/pdf') ext = '.pdf';
+      else if (lastCameraMime === 'image/png') ext = '.png';
+      else if (lastCameraMime === 'image/jpeg') ext = '.jpg';
+      else if (lastCameraMime === 'application/zip') ext = '.zip';
+      else if (lastCameraMime === 'text/plain') ext = '.txt';
+      else ext = '.bin';
+      const blob = new Blob([lastCameraBytes], { type: lastCameraMime });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = `${lastCameraFilename}${ext}`;
+      a.click();
+      URL.revokeObjectURL(a.href);
+    }
+  });
+
+  // ========== QR BONUS (unchanged) ==========
+  const qrBgInput = document.getElementById('qrBgInput');
+  const qrContent = document.getElementById('qrContent');
+  const qrStyle = document.getElementById('qrStyle');
+  const invisibleBoost = document.getElementById('invisibleBoost');
+  const invisibleSliderDiv = document.getElementById('invisibleSlider');
+  const generateQrBtn = document.getElementById('generateQrBtn');
+  const downloadQrBtn = document.getElementById('downloadQrBtn');
+  const qrPreviewDiv = document.getElementById('qrPreview');
+
+  qrStyle.addEventListener('change', () => { invisibleSliderDiv.style.display = qrStyle.value === 'invisible' ? 'block' : 'none'; });
+  async function drawClassicQR(text, canvas, size=400) { await new Promise(r=>QRCode.toCanvas(canvas,text,{width:size,margin:1},r)); }
+  async function drawHalftoneQR(text, bgFile, canvas, size=400) { canvas.width=size; canvas.height=size; const ctx=canvas.getContext('2d'); ctx.fillStyle='#f0f0f0'; ctx.fillRect(0,0,size,size); await new Promise(r=>QRCode.toCanvas(canvas,text,{width:size,margin:1},r)); }
+  async function drawMicrodotQR(text, bgFile, canvas, size=400) { await drawClassicQR(text,canvas,size); }
+  async function drawInvisibleQR(text, boost, canvas, size=400) { await drawClassicQR(text,canvas,size); const ctx=canvas.getContext('2d'); const imgData=ctx.getImageData(0,0,size,size); for(let i=0;i<imgData.data.length;i+=4){ let gray=imgData.data[i]; if(gray<128)gray=Math.max(40,150-boost); else gray=Math.min(255,210+boost); imgData.data[i]=imgData.data[i+1]=imgData.data[i+2]=gray; } ctx.putImageData(imgData,0,0); }
+  let lastQrCanvas=null;
+  generateQrBtn.addEventListener('click', async()=>{
+    const text=qrContent.value.trim(); if(!text) return;
+    const canvas=document.createElement('canvas');
+    const style=qrStyle.value;
+    if(style==='classic') await drawClassicQR(text,canvas,400);
+    else if(style==='halftone') await drawHalftoneQR(text,qrBgInput.files[0],canvas,400);
+    else if(style==='microdot') await drawMicrodotQR(text,qrBgInput.files[0],canvas,400);
+    else await drawInvisibleQR(text,parseInt(invisibleBoost.value,10),canvas,400);
+    lastQrCanvas=canvas;
+    qrPreviewDiv.innerHTML=''; qrPreviewDiv.appendChild(canvas);
+    downloadQrBtn.disabled=false;
+  });
+  downloadQrBtn.addEventListener('click',()=>{ if(lastQrCanvas){ const a=document.createElement('a'); a.download='qr_halogram.png'; a.href=lastQrCanvas.toDataURL(); a.click(); } });
+</script>
+</body>
+</html>
